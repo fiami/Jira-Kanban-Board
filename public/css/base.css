@@ -6,6 +6,7 @@ body {
 .issue {
 	margin-bottom: 10px;
 	overflow: hidden;
+    cursor: move;
 }
 
 .issue .btn-toolbar {
@@ -86,4 +87,19 @@ div.issue_red div.details {
 
 .issue .title a:hover {
 	text-decoration: underline;
+}
+
+/* ui styles */
+
+.ui-dialog .ui-dialog-titlebar-close {
+    display: none
+}
+
+.draggable.ui-draggable-dragging {
+    opacity: 0.4;
+    z-index: 1000000;
+}
+
+.hovered{
+    background-color: #ddd;
 }

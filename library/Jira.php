@@ -7,6 +7,14 @@
 class Jira {
 
 	/**
+	 * rest request vars
+	 */
+	const REQUEST_GET    = "GET";
+	const REQUEST_POST   = "POST";
+	const REQUEST_PUT    = "PUT";
+	const REQUEST_DELETE = "DELETE";
+
+	/**
 	 * @var string path to jira
 	 */
 	protected $path = "";
@@ -55,6 +63,7 @@ class Jira {
 		$created = strtotime($ticket->fields->created);
 		$priority = $ticket->fields->priority->name;
 		$status = $ticket->fields->status->name;
+		$dueDate = strtotime($ticket->fields->duedate);
 
 		$fixVersionsRaw = $ticket->fields->fixVersions;
 		$fixVersions = array();
@@ -71,12 +80,14 @@ class Jira {
 			"status" => $status,
 			"reporter" => $reporter,
 			"created" => $created,
-			"daysSinceCreation" => floor(((time() - $created) / 60 / 60 / 24)),
+			"daysSinceCreation" => self::getDateDifference($created),
 			"priority" => $priority,
 			"assignee" => $assignee,
 			"key" => $ticket->key,
 			"projectKey" => $projectKey,
-			"projectName" => $projectName
+			"projectName" => $projectName,
+			"dueDate" => $dueDate,
+			"daysUntilDueDate" => self::getDateDifference($dueDate,false),
 		);
 	}
 
@@ -89,7 +100,7 @@ class Jira {
 
 		// encode jql string, but decode slashes (/),
 		// Jira can only handle them decoded
-		return $this->query("search?jql=".
+		return $this->query(static::REQUEST_GET, "search?jql=".
 			str_replace("%252F", "/",
 				rawurlencode($jql)
 			)
@@ -103,7 +114,22 @@ class Jira {
 	 * @return mixed
 	 */
 	public function getVersionsByProject($projectkey) {
-		return $this->query("project/".$projectkey."/versions?");
+		return $this->query(static::REQUEST_GET, "project/".$projectkey."/versions?");
+	}
+
+	/**
+	 * @param $ticketkey
+	 * @param $newData
+	 * @return mixed
+	 */
+	public function updateTicket($ticketkey, $newData, $transition = false) {
+		$method = static::REQUEST_PUT;
+		$transitionUrl = "";
+		if($transition==true){
+			$transitionUrl = '/transitions?expand=transitions.fields';
+			$method = static::REQUEST_POST;
+		}
+		return $this->query($method, "issue/".$ticketkey.$transitionUrl, $newData);
 	}
 
 	/**
@@ -113,9 +139,59 @@ class Jira {
 	 * @return mixed
 	 * @throws Exception
 	 */
-	protected function query($query) {
-		$result = file_get_contents($this->path.$query."&os_username=".$this->username."&os_password=".$this->password);
+	protected function query($method, $query, $data = array()) {
+		$result = $this->sendRequest( $method, $query, $data );
 		if( $result === false ) throw new Exception("It wasn't possible to get jira url ".$this->path.$query." with username ".$this->username);
 		return json_decode($result);
+	}
+
+	/**
+	 * send the actual Jira request by using the passed REST/HTTP method
+	 * @param $method
+	 * @param $query
+	 * @param array $data
+	 * @return string
+	 * @throws Exception
+	 */
+	public function sendRequest($method, $query, $data = array()) {
+
+		$credential = base64_encode($this->username . ':' . $this->password);
+
+		$header = array();
+		$header[] = "Authorization: Basic " . $credential;
+		$header[] = "Content-Type: application/json";
+
+		$context = array(
+			"http" => array(
+				"method"  => $method,
+				"header"  => join("\r\n", $header),
+			));
+		if ($method=="POST" || $method == "PUT") {
+			$__data     = json_encode($data);
+			$header[]   = sprintf('Content-Length: %d', strlen($__data));
+			$context['http']['header']  = join("\r\n", $header);
+			$context['http']['content'] = $__data;
+		} else if (!empty($data)) {
+			$query .= "?" . http_build_query($data);
+		}
+
+		$data = file_get_contents($this->path . $query,
+			false,
+			stream_context_create($context)
+		);
+		if (is_null($data)) {
+			throw new Exception("JIRA Rest server returns unexpected result.");
+		}
+		return $data;
+	}
+
+	/**
+	 * get date difference in days
+	 * @param $date
+	 * @return int
+	 */
+	public function getDateDifference($date,$past = true) {
+		$difference = floor(((time() - $date) / 60 / 60 / 24)) * $mult = $past!==true? -1:1;
+		return $difference;
 	}
 }
