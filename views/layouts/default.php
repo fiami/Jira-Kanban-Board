@@ -10,11 +10,17 @@
 		<!-- Le styles -->
 		<link href="<?= $baseUrl ?>/public/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 		<link href="<?= $baseUrl ?>/public/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+		<link href="<?= $baseUrl ?>/public/jqueryui/jquery-ui-1.10.3.custom.min.css" rel="stylesheet">
 		<!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
 		<!--[if lt IE 9]>
 		<script src="./bootstrap/js/html5shiv.js"></script>
 		<![endif]-->
 		<link href="<?= $baseUrl ?>/public/css/base.css" rel="stylesheet">
+
+	   	<script>
+            window.kanbanBaseUrl = "<?= $baseUrl ?>";
+            window.kanbanCurrentBoard = "<?= isset($currentBoard) ? $currentBoard : "" ?>";
+    	</script>
 	</head>
 
 	<body>
@@ -59,6 +65,9 @@
 		</div> <!-- /container -->
 
 		<script src="<?= $baseUrl ?>/public/javascript/jquery-1.9.1.min.js"></script>
+		<script src="<?= $baseUrl ?>/public/javascript/jquery-ui-1.10.3.custom.min.js"></script>
+		<script src="<?= $baseUrl ?>/public/javascript/main.js"></script>
 		<script src="<?= $baseUrl ?>/public/bootstrap/js/bootstrap.min.js"></script>
+        <script src="<?= $baseUrl ?>/public/javascript/config.js"></script>
 	</body>
 </html>

@@ -93,6 +93,8 @@ class IssuesController extends AppController {
 		$this->passVar("cols", $config["columns"]);
 		$this->passVar("colorCode", $config["colorCode"]);
 		$this->passVar("title", "Board: ".$board);
+		$this->passVar("path", $config["path"]);
+		$this->passvar("currentBoard", $board);
 	}
 
 	/**
@@ -104,4 +106,29 @@ class IssuesController extends AppController {
 		require_once(dirname(__FILE__)."/../config.php");
 		return $sources;
 	}
+
+	public function editSample() {
+		// get configuration
+		$sources = $this->getBoardsFromConfig();
+		$board = $this->request["id"];
+		$config = $sources[$board];
+
+		require(dirname(__FILE__)."/../library/Jira.php");
+		$jira = new Jira($config["path"]);
+		$jira->auth($this->username, $this->password);
+
+		//update changed fields
+		if(isset($_POST['key']) && isset($_POST['fields'])){
+			$data = json_decode($_POST['fields'],true);
+			$key = json_decode($_POST['key'],true);
+
+			if(isset($data['update'])){
+				$jira->updateTicket($key, array("update" => $data['update']));
+			}
+			if(isset($data['transition'])){
+				$jira->updateTicket($key, array("transition" => $data['transition']), true);
+			}
+		}
+	}
+
 }
